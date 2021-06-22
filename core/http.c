@@ -36,16 +36,18 @@ void set_req_line_info(struct request *req, const char *request_line)
     if(tokens) {
         req->method = get_method(tokens->value);
         tokens->value = NULL;
+		if(tokens->next) {
+        	req->path = tokens->next->value;
+        	tokens->next->value = NULL;
+			if(tokens->next->next) {
+        		req->http_version = tokens->next->next->value;
+        		tokens->next->next->value = NULL;
+    		}
+
+    	}
+    
     }
-    if(tokens->next) {
-        req->path = tokens->next->value;
-        tokens->next->value = NULL;
-    }
-    if(tokens->next->next) {
-        req->http_version = tokens->next->next->value;
-        tokens->next->next->value = NULL;
-    }
-    free_tokens(tokens);
+	free_tokens(tokens);
 }
 
 struct header *make_header(const char *line)
@@ -267,6 +269,8 @@ const char *get_server_http_version()
 
 int validate_http_version(const char *version)
 {
+	if(!version)
+		return -1;
 	if(0 == strcmp(version, get_server_http_version()))
 		return 0;
 	return -1;

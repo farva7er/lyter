@@ -29,6 +29,7 @@ struct response {
 typedef struct response RESP;
 
 struct request {
+	int req_line_set;
     enum req_states state;
     int remains_to_read;
     enum http_method method;

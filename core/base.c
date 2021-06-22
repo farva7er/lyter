@@ -38,7 +38,6 @@ void read_in_buffer(int fd, struct connection *conn);
 void analyze_buffer(struct connection *conn);
 void handle_requests(struct connection *conn, p_route_node routes);
 void handle_ready_req(struct request *req, p_route_node routes);
-int validate_request(struct request *req);
 int fill_response(struct request *req, struct response *resp,
 												p_route_node routes);
 static int get_handler(struct request *req, p_route_node routes,
@@ -266,7 +265,8 @@ void analyze_buffer(struct connection *conn)
 void add_new_request(struct connection *conn)
 {
 	struct request *req = malloc(sizeof(*req));
-	req->state = uncompleted;		/* false */
+	req->req_line_set = 0;
+	req->state = uncompleted;
 	req->remains_to_read = 0;
 	req->method = -1;
 	req->path = NULL;
@@ -296,13 +296,12 @@ int fill_last_request(struct connection *conn)
 		read_remaining(conn);
 		if(req->remains_to_read == 0)
 			req->state = ready;
-		return 1;								/* read remaining is always
-													successful */
+		return 1;
 	}
 	crlf_line = get_crlf_line(conn);
 	if(!crlf_line)								/* no crlf in buffer */
 		return 0;
-	if(crlf_line[0] == 0 && !req->path) {
+	if(crlf_line[0] == 0 && !req->req_line_set) {
 		free(crlf_line);						/* skip empty line */
 		return 1;
 	}
@@ -319,6 +318,7 @@ int fill_last_request(struct connection *conn)
 
 	if(!req->path) {
 		set_req_line_info(req, crlf_line);
+		req->req_line_set = 1;
 	} else {
 		add_req_header_to_tail(req, make_header(crlf_line));
 	}
