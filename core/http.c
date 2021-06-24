@@ -257,7 +257,7 @@ void set_body(struct response *resp, const char *body, int size)
 		resp->body = NULL;
 	resp->body_length = size;
 	memcpy(resp->body, body, size);
-	snprintf(buff, max_body_length_digits + 1, "%d", size);
+	sprintf(buff, "%d", size);
 	
 	set_header(resp, "Content-Length", buff);
 }

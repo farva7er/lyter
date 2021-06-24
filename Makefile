@@ -1,7 +1,7 @@
 SRCMODULES=base.c log.c routes.c http.c string_utils.c set.c user.c
 OBJMODULES=$(SRCMODULES:.c=.o)
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -ansi -pedantic
 
 VPATH := . core utils user
 

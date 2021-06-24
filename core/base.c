@@ -125,6 +125,7 @@ void remove_connection(struct connection **head, struct connection *conn)
 int init_listening(int port)
 {	
     struct sockaddr_in addr;
+    int res, opt = 1;
 
 	/* listening socket */
 	int ls = socket(AF_INET, SOCK_STREAM, 0);
@@ -138,10 +139,9 @@ int init_listening(int port)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int opt = 1;
     setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    int res = bind(ls, (struct sockaddr*)&addr, sizeof(addr));
+    res = bind(ls, (struct sockaddr*)&addr, sizeof(addr));
     if(res == -1) {
 		perror("init_listening");
         return -1;
@@ -167,9 +167,10 @@ int run(int ls, p_route_node routes)
 
 	for(;;) {
 		int res;
+        struct timeval wake_up_time;
+
 		max_fd = perform_fd_selection(ls, &readfds, &writefds, connections);
 
-        struct timeval wake_up_time;
         wake_up_time.tv_sec = wake_up_time_sec;
         wake_up_time.tv_usec = 0;
 
@@ -545,7 +546,7 @@ void write_response(struct connection *conn)
 	if(!req->str_resp) {
 		char buff[4];
 		req->str_resp = response_to_str(req->resp, &req->resp_length);
-		snprintf(buff, 4, "%d", req->resp->code);
+		sprintf(buff, "%d", req->resp->code);
 		write_log(LOG_DEBUG, RESP_WRITE, buff);
 	}
 	free_space = write_buff_length - conn->write_count;
