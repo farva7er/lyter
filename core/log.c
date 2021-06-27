@@ -4,7 +4,7 @@
 #include <time.h>
 
 static FILE *log_file;
-const char *log_filename = "server.log";
+const char *log_filename = "lyter.log";
 static int max_level;
 
 static struct log_msg messages[] = {

@@ -1,7 +1,7 @@
 #ifndef BASE_H_
 #define BASE_H_
 
-#include "routes.h"
+#include "host.h"
 #include "http.h"
 
 enum { wake_up_time_sec = 30, qlen = 5 };
@@ -22,6 +22,6 @@ struct connection {
 
 
 int init_listening(int port);
-int run(int ls, p_route_node routes);
+int run(int ls, struct host_node *hosts);
 
 #endif

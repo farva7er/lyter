@@ -14,7 +14,7 @@ int get_port(char *port)
 int main(int argc, char **argv)
 {
 	int port, res, ls, log_level, curr_arg = 1;
-	p_route_node routes;
+	struct host_node *hosts;
 	if(argc >= 2 && 0 == strcmp(argv[curr_arg], "-d")) {
 		log_level = LOG_DEBUG;
 		curr_arg++;
@@ -30,9 +30,8 @@ int main(int argc, char **argv)
 	ls = init_listening(port);
 	if(ls == -1)
 		return 1;
-	routes = set_routes();
-	run(ls, routes);
-	free_routes(routes);
+	hosts = set_hosts();
+	run(ls, hosts);
 	log_close();
 	return 0;
 }

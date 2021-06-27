@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "user/user.h"
-#include "core/routes.h"
+#include "core/host.h"
 #include "utils/string_utils.h"
 
-p_route_node set_routes();
+struct host_node *set_hosts();
 
 extern const char *root_path;
 

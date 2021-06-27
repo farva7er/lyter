@@ -1,5 +1,6 @@
 *.o
 *.swp
-server
+lyter
+lyter.log
 deps.mk
 

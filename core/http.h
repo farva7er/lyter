@@ -45,7 +45,7 @@ struct request {
     struct request *next;
 };
 
-
+const char *get_header_value(const struct header *headers, const char *name);
 int get_content_length(struct request *req);
 void set_req_line_info(struct request *req, const char *request_line);
 struct header *make_header(const char *line);

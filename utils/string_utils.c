@@ -28,6 +28,21 @@ char *str_add(const char *a, const char *b)
 	return str;	
 }
 
+struct token *tokenize_first(const char *str, char separator)
+{
+	struct token *head = NULL, *tail = NULL;
+	const char *curr;
+	int len = strlen(str);
+	if(*str == separator)
+		str++;
+	curr = str;
+	while(*curr && *curr != separator)
+		curr++;
+	add_token(&head, &tail, make_str(str, curr));
+	add_token(&head, &tail, make_str(curr + 1, str + len));
+	return head;
+}
+
 struct token *tokenize(const char *str, char separator)
 {
 	struct token *head = NULL, *tail = NULL;
@@ -77,7 +92,7 @@ char *make_str(const char *begin, const char *end)
 {
 	int length = end - begin;
 	char *str;
-	if(!length)
+	if(length <= 0)
 		return NULL;
 	str = malloc(length + 1);
 	strncpy(str, begin, length);

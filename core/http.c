@@ -16,15 +16,21 @@ const char *get_redirection_phrase(int code);
 const char *get_client_error_phrase(int code);
 const char *get_server_error_phrase(int code);
 
+const char *get_header_value(const struct header *headers, const char *name)
+{
+	while(headers) {
+		if(0 == strcmp(headers->name, name))
+			return headers->value;
+		headers = headers->next;	
+	}
+	return NULL;
+}
 
 int get_content_length(struct request *req)
 {
-    struct header *curr_header = req->headers_head;
-    while(curr_header) {
-        if(0 == strcmp(curr_header->name, "content-length"))
-            return atoi(curr_header->value);
-        curr_header = curr_header->next;
-    }
+   	const char *len = get_header_value(req->headers_head, "content-length");
+	if(len)
+		return atoi(len);
     return 0;
 }
 
@@ -54,7 +60,7 @@ struct header *make_header(const char *line)
 {
 	char *name, *value;
 	struct header *header;
-	struct token *tokens = tokenize(line, ':');
+	struct token *tokens = tokenize_first(line, ':');
 
 	header = malloc(sizeof(*header));
 	header->name = NULL;

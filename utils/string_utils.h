@@ -6,6 +6,7 @@ struct token {
 	struct token *next;
 };
 
+struct token *tokenize_first(const char *str, char separator);
 struct token *tokenize(const char *str, char separator);
 void free_tokens(struct token *head);
 

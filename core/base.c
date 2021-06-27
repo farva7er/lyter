@@ -1,5 +1,5 @@
 #include "base.h"
-#include "routes.h"
+#include "host.h"
 #include "log.h"
 #include "../utils/string_utils.h"
 #include <stdio.h>
@@ -27,7 +27,7 @@ int perform_fd_selection(int ls, fd_set *readfds, fd_set *writefds,
 void accept_connection(int ls, struct connection **connections);
 void add_connection(int cs, struct connection **head);
 void iterate_connections(fd_set *readfds, fd_set *writefds,
-						struct connection **connections, p_route_node routes);
+			struct connection **connections, struct host_node *hosts);
 
 void add_new_request(struct connection *conn);
 int fill_last_request(struct connection *conn);
@@ -36,11 +36,11 @@ void read_remaining(struct connection *conn);
 void flush_buffer(int fd, struct connection *conn);
 void read_in_buffer(int fd, struct connection *conn);
 void analyze_buffer(struct connection *conn);
-void handle_requests(struct connection *conn, p_route_node routes);
-void handle_ready_req(struct request *req, p_route_node routes);
+void handle_requests(struct connection *conn, struct host_node *hosts);
+void handle_ready_req(struct request *req, struct host_node *hosts);
 int fill_response(struct request *req, struct response *resp,
-												p_route_node routes);
-static int get_handler(struct request *req, p_route_node routes,
+												struct host_node *hosts);
+static int get_handler(struct request *req, struct host_node *hosts,
 				route_handler *out_handler, char **out_allowed_methods);
 
 int handle_finished_req(struct connection *conn);
@@ -156,7 +156,7 @@ int init_listening(int port)
 	return ls;
 }
 
-int run(int ls, p_route_node routes)
+int run(int ls, struct host_node *hosts)
 {
 	struct connection *connections = NULL;
 	fd_set readfds;
@@ -197,13 +197,13 @@ int run(int ls, p_route_node routes)
  		if(FD_ISSET(ls, &readfds))
 			accept_connection(ls, &connections);
 
-		iterate_connections(&readfds, &writefds, &connections, routes);
+		iterate_connections(&readfds, &writefds, &connections, hosts);
     }
 }
 
 
 void iterate_connections(fd_set *readfds, fd_set *writefds,
-						struct connection **connections, p_route_node routes)
+		struct connection **connections, struct host_node *hosts)
 {
 	struct connection *curr_con = *connections, *next;
 	while(curr_con) {
@@ -215,7 +215,7 @@ void iterate_connections(fd_set *readfds, fd_set *writefds,
 			analyze_buffer(curr_con);
 		}
 		if(!curr_con->closing)
-			handle_requests(curr_con, routes);	
+			handle_requests(curr_con, hosts);	
 		else 
 			remove_connection(connections, curr_con);
 		curr_con = next;
@@ -376,13 +376,13 @@ char *get_crlf_line(struct connection *conn)
 }
 
 
-void handle_requests(struct connection *conn, p_route_node routes)
+void handle_requests(struct connection *conn, struct host_node *hosts)
 {
 	struct request *curr_req = conn->req_head;
 	int res;
 	while(curr_req) {
 		if(curr_req->state == ready)
-			handle_ready_req(curr_req, routes);
+			handle_ready_req(curr_req, hosts);
 		curr_req = curr_req->next;
 	}
 	
@@ -393,7 +393,7 @@ void handle_requests(struct connection *conn, p_route_node routes)
 	}
 }
 
-void handle_ready_req(struct request *req, p_route_node routes)
+void handle_ready_req(struct request *req, struct host_node *hosts)
 {
 	struct response *resp;
 	int res;
@@ -407,12 +407,12 @@ void handle_ready_req(struct request *req, p_route_node routes)
 	resp->headers_tail = NULL;
 	resp->body = NULL;
 	resp->body_length = 0;
-	res = fill_response(req, resp, routes);
+	res = fill_response(req, resp, hosts);
 	req->state = res;
 }
 
 int fill_response(struct request *req,
-							struct response *resp, p_route_node routes)
+						struct response *resp, struct host_node *hosts)
 {
 	int head_flag = 0;
 	int res, state;
@@ -447,7 +447,15 @@ int fill_response(struct request *req,
 		head_flag = 1;
 	}
 
-	res = get_handler(req, routes, &handler, &allowed_methods);
+	res = get_handler(req, hosts, &handler, &allowed_methods);
+
+	if(res == BAD_REQUEST) {
+		const char msg[] = "Please specify valid host (host header)";
+		set_code_and_phrase(resp, BAD_REQUEST);	
+		set_body(resp, msg, sizeof(msg));
+		state = finished;
+		goto cleanup;
+	}
 	
 	if(res == METHOD_NOT_ALLOWED) {
 		if(allowed_methods && allowed_methods[0] == 0) {	
@@ -501,19 +509,26 @@ cleanup:
 }
 
 
-int get_handler(struct request *req, p_route_node routes,
+int get_handler(struct request *req, struct host_node *hosts,
 						route_handler *out_handler, char **out_allowed_methods)
 {
+	p_route_node routes;
 	int allowed_methods[http_method_count] = { 0 };
-	route_handler handler = search_handler(routes, req->method, req->path,
+	const char *h = get_header_value(req->headers_head, "host");
+	if(!h)
+		return BAD_REQUEST;
+	routes = search_host(hosts, h);
+	if(!routes)
+		return BAD_REQUEST;
+	
+	*out_handler = search_handler(routes, req->method, req->path,
 															allowed_methods);
-	if((route_handler) -1 == handler)
+	if((route_handler) -1 == *out_handler)
 		return NOT_FOUND;
-	if((route_handler) 0 == handler) {
+	if((route_handler) 0 == *out_handler) {
 		*out_allowed_methods = allowed_methods_str(allowed_methods);
 		return METHOD_NOT_ALLOWED;
 	}
-	*out_handler = handler;
 	return 0;
 }
 

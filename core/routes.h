@@ -29,7 +29,8 @@ struct route_node {
 	struct route_node *next;
 };
 
-typedef struct route_node* p_route_node;
+typedef struct route_node *p_route_node;
+typedef struct route_node **ROOT;
 
 /* setting ///////////////////////////////////////////////////////// */
 p_route_node set_routes();
