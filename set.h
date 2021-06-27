@@ -9,7 +9,7 @@
 
 struct host_node *set_hosts();
 
-extern const char *root_path;
+extern const char *base_path;
 
 #endif
 

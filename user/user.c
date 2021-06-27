@@ -52,7 +52,7 @@ char *get_file(const char *path, int *out_size)
 {
 	char *file, *abs_path;
 	int rc, fd, seek;
-	abs_path = str_add(root_path, path);
+	abs_path = str_add(base_dir, path);
 	fd = open(abs_path, O_RDONLY);
 	if(fd == -1) {
 		write_log(LOG_ERR, FILE_OPEN_ERR, abs_path);

@@ -1,6 +1,6 @@
 #include "set.h"
 
-const char *root_path = "/home/farvater/site";
+const char *base_dir = "/home/farvater/site";
 
 int index_handler(REQ *req, RESP *resp);
 int file_handler(REQ *req, RESP *resp);
