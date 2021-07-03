@@ -20,5 +20,5 @@ deps.mk: $(SRCMODULES)
 	
 
 clean:
-	rm -f *.o server
+	rm -f *.o lyter deps.mk
 
