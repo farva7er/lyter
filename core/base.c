@@ -116,6 +116,7 @@ void remove_connection(struct connection **head, struct connection *conn)
 		conn->prev->next = conn->next;
 	if(conn->next)
 		conn->next->prev = conn->prev;
+	close(conn->fd);
 	free_requests(conn->req_head);
 	free(conn);
 	
