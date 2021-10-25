@@ -76,7 +76,7 @@ int perform_fd_selection(int ls, fd_set *readfds, fd_set *writefds,
 void accept_connection(int ls, struct connection **connections)
 {
 	int cs, flags;
-    struct sockaddr_in addr;
+   struct sockaddr_in addr;
 	socklen_t addrlen = sizeof(addr);
     cs = accept(ls, (struct sockaddr*) &addr, &addrlen);
     if(cs == -1) {
@@ -87,7 +87,7 @@ void accept_connection(int ls, struct connection **connections)
 	flags = fcntl(cs, F_GETFL);					/* in order to use writefds */
 	fcntl(cs, F_SETFL, flags | O_NONBLOCK);
 
-    add_connection(cs, connections);
+   add_connection(cs, connections);
 
 	write_log(LOG_INFO, CONNECTION_CREATED, NULL);
 }
@@ -124,37 +124,40 @@ void remove_connection(struct connection **head, struct connection *conn)
 }
 
 int init_listening(int port)
-{	
-    struct sockaddr_in addr;
-    int res, opt = 1;
+{
+   struct sockaddr_in addr;
+   int res, opt = 1;
 
-	/* listening socket */
-	int ls = socket(AF_INET, SOCK_STREAM, 0);
+   /* listening socket */
+   int ls = socket(AF_INET, SOCK_STREAM, 0);
+   if(ls == -1) {
+      perror("init_listening");
+      return -1;
+   }
 
-    if(ls == -1) {
-		perror("init_listening");
-        return -1;
-    }
+   addr.sin_family = AF_INET;
+   addr.sin_port = htons(port);
+   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+   setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); 
 
-    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+   res = bind(ls, (struct sockaddr*)&addr, sizeof(addr));
+   if(res == -1) {
+      perror("init_listening");
+      return -1;
+   }
 
-    res = bind(ls, (struct sockaddr*)&addr, sizeof(addr));
-    if(res == -1) {
-		perror("init_listening");
-        return -1;
-    }
+   res = listen(ls, qlen);
+   if(res == -1) {
+      perror("init_listening");
+      return -1;
+   }
 
-    res = listen(ls, qlen);
-    if(res == -1) {
-		perror("init_listening");
-        return -1;
-    }
+   /* drop root privileges */
+   setuid(getuid());
+   setgid(getgid());
 
-	return ls;
+   return ls;
 }
 
 int run(int ls, struct host_node *hosts)
@@ -168,32 +171,32 @@ int run(int ls, struct host_node *hosts)
 
 	for(;;) {
 		int res;
-        struct timeval wake_up_time;
+      struct timeval wake_up_time;
 
 		max_fd = perform_fd_selection(ls, &readfds, &writefds, connections);
 
-        wake_up_time.tv_sec = wake_up_time_sec;
-        wake_up_time.tv_usec = 0;
+      wake_up_time.tv_sec = wake_up_time_sec;
+      wake_up_time.tv_usec = 0;
 
-        res = select(max_fd + 1, &readfds, &writefds, NULL, &wake_up_time);
+      res = select(max_fd + 1, &readfds, &writefds, NULL, &wake_up_time);
 
-        if(res == -1) {
+      if(res == -1) {
 			if(errno == EINTR) {
 				write_log(LOG_INFO, SELECT_INTR, NULL);
 				if(is_running == 0) {
 					write_log(LOG_INFO, SHUTDOWN, "%%%%-----------------%%%%");
 					return 0;
-				}
-			} else {
+				} 
+         } else {
 				write_log(LOG_ERR, SELECT_ARG_ERR, NULL);
-			}
+		   }
             continue;
-        }
+      }
 
-        if(res == 0) {
+      if(res == 0) {
 			write_log(LOG_DEBUG, SELECT_TIMEOUT, NULL);
             continue;
-        }
+      }
 
  		if(FD_ISSET(ls, &readfds))
 			accept_connection(ls, &connections);
